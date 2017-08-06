@@ -5,10 +5,8 @@
   box-sizing:border-box;
 }
 #canvas {
-    left:0;
-    top:0;
-    position: absolute;
+    display: block;
+    margin: 0 auto;
+    background: #cfcfcf;
 }
-body{
-  background-color: #cfcfcf;
-}
+body{}

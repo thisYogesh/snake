@@ -36,13 +36,12 @@ var snakeApp = (function snakeApp(container) {
     setup: function () {
         var _this = this;
         _this.reScale();
-        $(window).resize(function () {
+        /*$(window).resize(function () {
             _this.reScale();
-        });
+        });*/
     },
     reScale: function () {
-        this.canvas.height = window.innerHeight;
-        this.canvas.width = window.innerWidth;
+        this.canvas.height = this.canvas.width = 400 + 1;
     }
 });
 
@@ -58,7 +57,7 @@ var playGround = (function playGround(container, canvas) {
     drawBackground: function () {
         var _this = this, cx = _this.context, w = _this.canvas.width;
         //cx.lineWidth = 0.5;
-        cx.strokeStyle = "#fafafa";
+        cx.strokeStyle = "gray";
         cx.beginPath();
         for (var q = 0; q < w; q += 10) {
             cx.moveTo(num(q), 0);
@@ -105,11 +104,17 @@ var snake = function () {
         init: function () {
             this.direction = this.dir.ltr;
             this.snakeSegment = new (snakeSegment._inheritInstance(this));
+        },
+        moveForword: function () {
+            var segments = this.snakeSegment.segments;
+            for (var i = 0; i < segments.length; i++) {
+                this.snakeSegment.moveForword(segments[i]);
+            }
         }
     });
 
     var snakeSegment = (function snakeSegment() {
-        this.position = { x: 100 , y: 100 };
+        this.position = { x: 100, y: 100 };
         this.addSegment();
         return this;
     })._inherit(s)._prototype({
@@ -136,6 +141,19 @@ var snake = function () {
                 segment.x = lastSegment.x - lastSegment.dimention - 1;
                 segment.y = lastSegment.y;
             }
+        },
+        moveForword: function (segment) {
+            this.clearPosition(segment);
+            segment.x = segment.x + segment.dimention + 1;
+            segment.y = segment.y;
+            segment.dimention = segment.dimention;
+            this.drawSegment(segment);
+        },
+        moveBackword: function (segment) {
+
+        },
+        clearPosition: function (segment) {
+            this.context.clearRect(segment.x, segment.y, segment.dimention, segment.dimention);
         },
         addSegment: function (length) {
             length = length || this.length;
