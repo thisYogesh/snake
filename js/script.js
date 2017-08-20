@@ -20,6 +20,50 @@ Function.prototype._inheritInstance = function (Obj) {
     }
     return this;
 };
+
+function animationFrame() {
+    /*var d = new Date();
+    function fun(){
+        var e = new Date();
+        if( e.getSeconds() >= d.getSeconds() + 5 ){
+            d =[] e;
+            console.log('hi');
+        }
+        requestAnimationFrame(fun);
+    }*/
+    this.frame = function (w) {
+        var a;
+        if (w.requestAnimationFrame) {
+            a = {
+                type: 0,
+                execute: w.requestAnimationFrame,
+                close: w.cancelAnimationFrame
+            }
+        } else {
+            a = {
+                type: 1,
+                execute: w.setTimeout,
+                close: w.clearTimeout
+            }
+        }
+        return a;
+    }(window);
+}
+
+// var d = new Date();
+// function fun(){
+// 	var e = new Date(), 
+// 	gs = e.getSeconds() - d.getSeconds(),
+// 	gm = e.getMinutes() - d.getMinutes();
+// 	if( (e.getMilliseconds()) * (gs + 1) * (gm + 1) >= (d.getMilliseconds() + 5000) ){
+// 		d = e;
+// 		console.log('requestAnimationFrame');
+// 	}
+// 	a = requestAnimationFrame(fun);
+// }
+// //fun()
+// //setInterval(function(){ console.log('setInterval'); },5000)
+
 function num(a) {
     return a + 0.5;
 }
@@ -105,19 +149,18 @@ var snake = function () {
             this.direction = this.dir.ltr;
             this.snakeSegment = new (snakeSegment._inheritInstance(this));
         },
-        moveForword: function () {
+        move: function () {
             var segments = this.snakeSegment.segments;
             for (var i = 0; i < segments.length; i++) {
-                this.snakeSegment.moveForword(segments[i]);
+                this.snakeSegment.move(segments[i]);
             }
         }
     });
 
     var snakeSegment = (function snakeSegment() {
-        this.position = { x: 100, y: 100 };
         this.addSegment();
         return this;
-    })._inherit(s)._prototype({
+    })._prototype({
         createSegment: function () {
             var segment = {
                 dimention: this.dimention,
@@ -133,8 +176,8 @@ var snake = function () {
             var sg = this.segments.length == 0 ? true : false;
             if (sg) {
                 segment.dimention = this.dimention - 1;
-                segment.x = this.position.x + 1;
-                segment.y = this.position.y + 1;
+                segment.x = 100 + 1;
+                segment.y = 100 + 1;
             } else {
                 var lastSegment = this.segments[this.segments.length - 1];
                 segment.dimention = this.dimention - 1;
@@ -142,17 +185,15 @@ var snake = function () {
                 segment.y = lastSegment.y;
             }
         },
-        moveForword: function (segment) {
-            this.clearPosition(segment);
-            segment.x = segment.x + segment.dimention + 1;
-            segment.y = segment.y;
-            segment.dimention = segment.dimention;
+        move: function (segment) {
+            this.clearSegment(segment);
+            if (this.direction == this.dir.ltr) {
+                segment.x = segment.x + segment.dimention + 1;
+                segment.y = segment.y;
+            }
             this.drawSegment(segment);
         },
-        moveBackword: function (segment) {
-
-        },
-        clearPosition: function (segment) {
+        clearSegment: function (segment) {
             this.context.clearRect(segment.x, segment.y, segment.dimention, segment.dimention);
         },
         addSegment: function (length) {
