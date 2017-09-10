@@ -120,6 +120,10 @@ var playGround = (function playGround(container, canvas) {
         var _this = this;
         $(window).resize(function () {
             _this.drawBackground();
+        }).bind("keyup keydown keypress", function (e) {
+            if (e.type == "keyup") {
+                console.log(_this)
+            }
         });
     },
     addSnake: function () {
@@ -154,6 +158,9 @@ var snake = function () {
             for (var i = 0; i < segments.length; i++) {
                 this.snakeSegment.move(segments[i]);
             }
+        },
+        head: function () {
+            return this.snakeSegment.getSegment(0);
         }
     });
 
@@ -204,6 +211,9 @@ var snake = function () {
         },
         drawSegment: function (segment) {
             this.context.fillRect(segment.x, segment.y, segment.dimention, segment.dimention);
+        },
+        getSegment: function (index) {
+            return this.segments[index];
         }
     });
 
