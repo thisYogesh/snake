@@ -21,48 +21,27 @@ Function.prototype._inheritInstance = function (Obj) {
     return this;
 };
 
-function animationFrame() {
-    /*var d = new Date();
-    function fun(){
-        var e = new Date();
-        if( e.getSeconds() >= d.getSeconds() + 5 ){
-            d =[] e;
-            console.log('hi');
-        }
-        requestAnimationFrame(fun);
-    }*/
-    this.frame = function (w) {
-        var a;
-        if (w.requestAnimationFrame) {
-            a = {
-                type: 0,
-                execute: w.requestAnimationFrame,
-                close: w.cancelAnimationFrame
-            }
-        } else {
-            a = {
-                type: 1,
-                execute: w.setTimeout,
-                close: w.clearTimeout
-            }
-        }
-        return a;
-    }(window);
+function animationFrame(a) {
+    this.frameID = 0;
+    this.live = false;
+    this.frame = function () {
+        var _this = this;
+        this.frameID = setTimeout(function () {
+            a.callback();
+            _this.frame();
+        }, a.interval);
+        this.live = true;
+    }
+    this.stop = function () {
+        clearTimeout(this.frameID);
+        this.live = false;
+    }
+    this.start = function () {
+        this.frame();
+    }
+    this.frame();
+    return this;
 }
-
-// var d = new Date();
-// function fun(){
-// 	var e = new Date(), 
-// 	gs = e.getSeconds() - d.getSeconds(),
-// 	gm = e.getMinutes() - d.getMinutes();
-// 	if( (e.getMilliseconds()) * (gs + 1) * (gm + 1) >= (d.getMilliseconds() + 5000) ){
-// 		d = e;
-// 		console.log('requestAnimationFrame');
-// 	}
-// 	a = requestAnimationFrame(fun);
-// }
-// //fun()
-// //setInterval(function(){ console.log('setInterval'); },5000)
 
 function num(a) {
     return a + 0.5;
@@ -80,9 +59,6 @@ var snakeApp = (function snakeApp(container) {
     setup: function () {
         var _this = this;
         _this.reScale();
-        /*$(window).resize(function () {
-            _this.reScale();
-        });*/
     },
     reScale: function () {
         this.canvas.height = this.canvas.width = 400 + 1;
@@ -101,7 +77,7 @@ var playGround = (function playGround(container, canvas) {
     drawBackground: function () {
         var _this = this, cx = _this.context, w = _this.canvas.width;
         //cx.lineWidth = 0.5;
-        cx.strokeStyle = "gray";
+        cx.strokeStyle = "#a7b78e";
         cx.beginPath();
         for (var q = 0; q < w; q += 10) {
             cx.moveTo(num(q), 0);
@@ -117,19 +93,37 @@ var playGround = (function playGround(container, canvas) {
         _this.drawBackground();
     },
     setup: function () {
-        var _this = this;
+        var _this = this, frame,
+            keyCode = [37, 38, 39, 40],
+            _keyCode = { 37: "rtl", 38: "btt", 39: "ltr", 40: "ttb" };
         $(window).resize(function () {
             _this.drawBackground();
-        }).bind("keyup keydown keypress", function (e) {
-            if (e.type == "keyup") {
-                console.log(_this)
+        }).bind("keydown", function (e) {
+            if (keyCode.indexOf(e.keyCode) > -1) {
+                if (_this.snake.direction._ != _keyCode[e.keyCode]) {
+                    _this.snake.moveTo(_keyCode[e.keyCode]);
+                    frame.stop();
+                }
+
+                if (!frame) {
+                    frame = new animationFrame({
+                        callback: function () {
+                            _this.snake.move();
+                        },
+                        interval: 1000
+                    })
+                }else if(frame && frame.live === false){
+                    frame.start();
+                };
             }
+
         });
     },
     addSnake: function () {
         this.snake = new snake({
             context: this.context,
-            length: 8
+            length: 8,
+            color: "#748658"
         });
     }
 });
@@ -150,7 +144,7 @@ var snake = function () {
         return this;
     })._prototype({
         init: function () {
-            this.direction = this.dir.ltr;
+            this.direction = { _: this.dir.ltr };
             this.snakeSegment = new (snakeSegment._inheritInstance(this));
         },
         move: function () {
@@ -159,8 +153,12 @@ var snake = function () {
                 this.snakeSegment.move(segments[i]);
             }
         },
-        head: function () {
-            return this.snakeSegment.getSegment(0);
+        moveTo: function (dir) {
+            this.setDirection(dir);
+            this.move();
+        },
+        setDirection: function (dir) {
+            this.direction._ = this.dir[dir] || this.direction._;
         }
     });
 
@@ -194,7 +192,7 @@ var snake = function () {
         },
         move: function (segment) {
             this.clearSegment(segment);
-            if (this.direction == this.dir.ltr) {
+            if (this.direction._ == this.dir.ltr) {
                 segment.x = segment.x + segment.dimention + 1;
                 segment.y = segment.y;
             }
@@ -210,10 +208,10 @@ var snake = function () {
             };
         },
         drawSegment: function (segment) {
+            this.context.strokeStyle = "#606f49";
+            this.context.fillStyle = this.color;
             this.context.fillRect(segment.x, segment.y, segment.dimention, segment.dimention);
-        },
-        getSegment: function (index) {
-            return this.segments[index];
+            this.context.strokeRect(segment.x + .5, segment.y + .5, segment.dimention - 1, segment.dimention - 1);
         }
     });
 
