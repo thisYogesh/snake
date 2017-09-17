@@ -21,6 +21,18 @@ Function.prototype._inheritInstance = function (Obj) {
     return this;
 };
 
+var direction = {
+    ltr: "Left_to_Right",
+    rtl: "Right_to_Left",
+    ttb: "Top_to_Bottom",
+    btt: "Bottom_to_Top"
+}, _direction = {
+    "Left_to_Right": "ltr",
+    "Right_to_Left": "rtl",
+    "Top_to_Bottom": "ttb",
+    "Bottom_to_Top": "btt"
+};
+
 function animationFrame(a) {
     this.frameID = 0;
     this.live = false;
@@ -95,14 +107,14 @@ var playGround = (function playGround(container, canvas) {
     setup: function () {
         var _this = this, frame,
             keyCode = [37, 38, 39, 40],
-            _keyCode = { 37: "rtl", 38: "btt", 39: "ltr", 40: "ttb" };
+            _keyCode = { 37: "Right_to_Left", 38: "Bottom_to_Top", 39: "Left_to_Right", 40: "Top_to_Bottom" };
         $(window).resize(function () {
             _this.drawBackground();
-        }).bind("keydown", function (e) {
+        }).bind("keyup", function (e) {
             if (keyCode.indexOf(e.keyCode) > -1) {
-                if (_this.snake.direction._ != _keyCode[e.keyCode]) {
-                    _this.snake.moveTo(_keyCode[e.keyCode]);
-                    frame.stop();
+                if (_this.snake._direction._ != _keyCode[e.keyCode]) {
+                    _this.snake.moveTo(_direction[_keyCode[e.keyCode]]);
+                    if (frame) frame.stop();
                 }
 
                 if (!frame) {
@@ -112,7 +124,7 @@ var playGround = (function playGround(container, canvas) {
                         },
                         interval: 1000
                     })
-                }else if(frame && frame.live === false){
+                } else if (frame && frame.live === false) {
                     frame.start();
                 };
             }
@@ -135,16 +147,16 @@ var snake = function () {
         this.dimention = config.dimention || 10;
         this.context = config.context || null;
         this.dir = {
-            ltr: "Left to Right",
-            rtl: "Right to Left",
-            ttb: "Top to Bottom",
-            btt: "Bottom to Top"
+            ltr: "Left_to_Right",
+            rtl: "Right_to_Left",
+            ttb: "Top_to_Bottom",
+            btt: "Bottom_to_Top"
         };
         this.init();
         return this;
     })._prototype({
         init: function () {
-            this.direction = { _: this.dir.ltr };
+            this._direction = { _: this.dir.ltr };
             this.snakeSegment = new (snakeSegment._inheritInstance(this));
         },
         move: function () {
@@ -158,12 +170,14 @@ var snake = function () {
             this.move();
         },
         setDirection: function (dir) {
-            this.direction._ = this.dir[dir] || this.direction._;
+            this._direction._ = this.dir[dir] || this._direction._;
         }
     });
 
     var snakeSegment = (function snakeSegment() {
         this.addSegment();
+        this.turnPoints = [];
+        this.direction = this._direction._;
         return this;
     })._prototype({
         createSegment: function () {
@@ -192,11 +206,44 @@ var snake = function () {
         },
         move: function (segment) {
             this.clearSegment(segment);
-            if (this.direction._ == this.dir.ltr) {
-                segment.x = segment.x + segment.dimention + 1;
-                segment.y = segment.y;
+            if (this.direction != this._direction._) { // if direction changes
+                var snakehead = this.getSegment(0);
+                this.setTurnPoints({
+                    x: snakehead.x,
+                    y: snakehead.y
+                });
+                this.direction = this._direction._;
             }
+            this._move(segment, this.direction);
             this.drawSegment(segment);
+        },
+        _move: function (segment, dir, resolve) {
+            if (dir == this.dir.ltr) {
+                if (this.resolveSegmentDirection(segment, resolve)) {
+                    segment.x = segment.x + segment.dimention + 1;
+                }
+            } else if (dir == this.dir.ttb) {
+                if (this.resolveSegmentDirection(segment, resolve)) {
+                    segment.y = segment.y + segment.dimention + 1;
+                }
+            }
+        },
+        resolveSegmentDirection: function (segment, resolve) {
+            if (segment.resolveDirection && !resolve) {
+                var dirs = segment.resolveDirection.split(" ");
+                this._move(segment, dirs[0], true);
+
+                if (this.matchTurnPoint(segment)) {
+                    dirs.splice(0, 1);
+                    segment.resolveDirection = dirs.join(" ");
+                    if(!segment.resolveDirection){
+                        segment.resolveDirection = null;
+                    }
+                }
+                return false;
+            } else {
+                return true;
+            }
         },
         clearSegment: function (segment) {
             this.context.clearRect(segment.x, segment.y, segment.dimention, segment.dimention);
@@ -212,6 +259,35 @@ var snake = function () {
             this.context.fillStyle = this.color;
             this.context.fillRect(segment.x, segment.y, segment.dimention, segment.dimention);
             this.context.strokeRect(segment.x + .5, segment.y + .5, segment.dimention - 1, segment.dimention - 1);
+        },
+        getSegment: function (i) {
+            return this.segments[i];
+        },
+        setTurnPoints: function (turnPoint) {
+            turnPoint.index = this.turnPoints.length;
+            this.turnPoints.push(turnPoint);
+            for (var i = 1, j = this.segments[i]; i < this.segments.length; i++ , j = this.segments[i]) {
+                if (!j.resolveDirection) j.resolveDirection = "";
+                j.resolveDirection += " " + this.direction;
+                j.resolveDirection = j.resolveDirection.trim();
+            };
+        },
+        clearTurnPoints: function () {
+            this.turnPoints.length = 0;
+        },
+        matchTurnPoint: function (segment) {
+            var found = false;
+            for (var i = 0; i < this.turnPoints.length; i++) {
+                if (segment.x == this.turnPoints[i].x && segment.y == this.turnPoints[i].y) {
+                    //this.turnPoints.splice(i, 1);
+                    found = true;
+                    break;
+                }
+            }
+            return found;
+        },
+        removeTurnPoints: function (turnPoint) {
+            this.turnPoints.splice(turnPoint.index, 1);
         }
     });
 
