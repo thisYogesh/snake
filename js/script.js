@@ -118,11 +118,12 @@ var playGround = (function playGround(container, canvas) {
                 }
 
                 if (!frame) {
+                    _this.snake.move();
                     frame = new animationFrame({
                         callback: function () {
                             _this.snake.move();
                         },
-                        interval: 1000
+                        interval: 400
                     })
                 } else if (frame && frame.live === false) {
                     frame.start();
@@ -218,13 +219,15 @@ var snake = function () {
             this.drawSegment(segment);
         },
         _move: function (segment, dir, resolve) {
-            if (dir == this.dir.ltr) {
-                if (this.resolveSegmentDirection(segment, resolve)) {
-                    segment.x = segment.x + segment.dimention + 1;
-                }
-            } else if (dir == this.dir.ttb) {
-                if (this.resolveSegmentDirection(segment, resolve)) {
-                    segment.y = segment.y + segment.dimention + 1;
+            if (this.resolveSegmentDirection(segment, resolve)) {
+                if (dir == this.dir.ltr) {
+                    segment.x = segment.x + (segment.dimention + 1);
+                } else if (dir == this.dir.rtl) {
+                    segment.x = segment.x - (segment.dimention + 1);
+                } else if (dir == this.dir.ttb) {
+                    segment.y = segment.y + (segment.dimention + 1);
+                } else if (dir == this.dir.btt) {
+                    segment.y = segment.y - (segment.dimention + 1);
                 }
             }
         },
@@ -236,7 +239,7 @@ var snake = function () {
                 if (this.matchTurnPoint(segment)) {
                     dirs.splice(0, 1);
                     segment.resolveDirection = dirs.join(" ");
-                    if(!segment.resolveDirection){
+                    if (!segment.resolveDirection) {
                         segment.resolveDirection = null;
                     }
                 }
