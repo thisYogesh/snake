@@ -21,17 +21,8 @@ Function.prototype._inheritInstance = function (Obj) {
     return this;
 };
 
-var direction = {
-    ltr: "Left_to_Right",
-    rtl: "Right_to_Left",
-    ttb: "Top_to_Bottom",
-    btt: "Bottom_to_Top"
-}, _direction = {
-    "Left_to_Right": "ltr",
-    "Right_to_Left": "rtl",
-    "Top_to_Bottom": "ttb",
-    "Bottom_to_Top": "btt"
-};
+var direction = { ltr: 1, rtl: 2, ttb: 3, btt: 4 },
+    _direction = { 1: "ltr", 2: "rtl", 3: "ttb", 4: "btt" };
 
 function animationFrame(a) {
     this.frameID = 0;
@@ -107,29 +98,31 @@ var playGround = (function playGround(container, canvas) {
     setup: function () {
         var _this = this, frame,
             keyCode = [37, 38, 39, 40],
-            _keyCode = { 37: "Right_to_Left", 38: "Bottom_to_Top", 39: "Left_to_Right", 40: "Top_to_Bottom" };
+            _keyCode = { 39: 1, 37: 2, 40: 3, 38: 4 };
         $(window).resize(function () {
             _this.drawBackground();
         }).bind("keyup", function (e) {
             if (keyCode.indexOf(e.keyCode) > -1) {
-                if (_this.snake._direction._ != _keyCode[e.keyCode]) {
-                    _this.snake.moveTo(_direction[_keyCode[e.keyCode]]);
+                if (_this.snake._direction._ !== _keyCode[e.keyCode] || !frame) {
                     if (frame) frame.stop();
+                    if (!_this.snake.setDirection(_direction[_keyCode[e.keyCode]]).move()) {
+                        frame.stop();
+                    } else {
+                        if (!frame) {
+                            frame = new animationFrame({
+                                callback: function () {
+                                    if (!_this.snake.move()) {
+                                        frame.stop();
+                                    }
+                                },
+                                interval: 400
+                            })
+                        } else if (frame && frame.live === false) {
+                            frame.start();
+                        };
+                    };
                 }
-
-                if (!frame) {
-                    _this.snake.move();
-                    frame = new animationFrame({
-                        callback: function () {
-                            _this.snake.move();
-                        },
-                        interval: 400
-                    })
-                } else if (frame && frame.live === false) {
-                    frame.start();
-                };
             }
-
         });
     },
     addSnake: function () {
@@ -148,10 +141,10 @@ var snake = function () {
         this.dimention = config.dimention || 10;
         this.context = config.context || null;
         this.dir = {
-            ltr: "Left_to_Right",
-            rtl: "Right_to_Left",
-            ttb: "Top_to_Bottom",
-            btt: "Bottom_to_Top"
+            ltr: 1,
+            rtl: 2,
+            ttb: 3,
+            btt: 4
         };
         this.init();
         return this;
@@ -161,10 +154,16 @@ var snake = function () {
             this.snakeSegment = new (snakeSegment._inheritInstance(this));
         },
         move: function () {
-            var segments = this.snakeSegment.segments;
+            var segments = this.snakeSegment.segments,
+                isCollide = false;
             for (var i = 0; i < segments.length; i++) {
-                this.snakeSegment.move(segments[i]);
+                if (!this.snakeSegment.move(segments[i])) {
+                    isCollide = true;
+                    break;
+                };
             }
+
+            return !isCollide;
         },
         moveTo: function (dir) {
             this.setDirection(dir);
@@ -172,6 +171,7 @@ var snake = function () {
         },
         setDirection: function (dir) {
             this._direction._ = this.dir[dir] || this._direction._;
+            return this;
         }
     });
 
@@ -188,8 +188,7 @@ var snake = function () {
                 y: 0
             };
             this.segments = this.segments || [];
-            this.positionize(segment);
-            this.segments.push(segment);
+            this.positionize(segment).segments.push(segment);
             this.drawSegment(segment);
         },
         positionize: function (segment) {
@@ -204,19 +203,24 @@ var snake = function () {
                 segment.x = lastSegment.x - lastSegment.dimention - 1;
                 segment.y = lastSegment.y;
             }
+            return this;
         },
         move: function (segment) {
-            this.clearSegment(segment);
+            var snakeHead = this.clearSegment(segment).getSegment(0);
             if (this.direction != this._direction._) { // if direction changes
-                var snakehead = this.getSegment(0);
                 this.setTurnPoints({
-                    x: snakehead.x,
-                    y: snakehead.y
+                    x: snakeHead.x,
+                    y: snakeHead.y
                 });
                 this.direction = this._direction._;
             }
             this._move(segment, this.direction);
-            this.drawSegment(segment);
+            if (!this.checkSegmentCollide(snakeHead)) {
+                this.drawSegment(segment);
+                return true;
+            } else {
+                return false; // snake head got collied with one of his segment
+            }
         },
         _move: function (segment, dir, resolve) {
             if (this.resolveSegmentDirection(segment, resolve)) {
@@ -230,6 +234,16 @@ var snake = function () {
                     segment.y = segment.y - (segment.dimention + 1);
                 }
             }
+        },
+        checkSegmentCollide: function (snakeHead) {
+            var found = false;
+            for (var i = 1; i < this.segments.length; i++) {
+                if (this.segments[i].x == snakeHead.x && this.segments[i].y == snakeHead.y) {
+                    found = true;
+                    break;
+                }
+            }
+            return found;
         },
         resolveSegmentDirection: function (segment, resolve) {
             if (segment.resolveDirection && !resolve) {
@@ -250,6 +264,7 @@ var snake = function () {
         },
         clearSegment: function (segment) {
             this.context.clearRect(segment.x, segment.y, segment.dimention, segment.dimention);
+            return this;
         },
         addSegment: function (length) {
             length = length || this.length;
@@ -262,18 +277,20 @@ var snake = function () {
             this.context.fillStyle = this.color;
             this.context.fillRect(segment.x, segment.y, segment.dimention, segment.dimention);
             this.context.strokeRect(segment.x + .5, segment.y + .5, segment.dimention - 1, segment.dimention - 1);
+            return this;
         },
         getSegment: function (i) {
             return this.segments[i];
         },
         setTurnPoints: function (turnPoint) {
-            turnPoint.index = this.turnPoints.length;
+            turnPoint.resolveIndex = 1;
             this.turnPoints.push(turnPoint);
             for (var i = 1, j = this.segments[i]; i < this.segments.length; i++ , j = this.segments[i]) {
                 if (!j.resolveDirection) j.resolveDirection = "";
                 j.resolveDirection += " " + this.direction;
                 j.resolveDirection = j.resolveDirection.trim();
             };
+            return this;
         },
         clearTurnPoints: function () {
             this.turnPoints.length = 0;
@@ -282,7 +299,10 @@ var snake = function () {
             var found = false;
             for (var i = 0; i < this.turnPoints.length; i++) {
                 if (segment.x == this.turnPoints[i].x && segment.y == this.turnPoints[i].y) {
-                    //this.turnPoints.splice(i, 1);
+                    this.turnPoints[i].resolveIndex++;
+                    if (this.segments.length == this.turnPoints[i].resolveIndex) {
+                        this.turnPoints.splice(i, 1);
+                    }
                     found = true;
                     break;
                 }
