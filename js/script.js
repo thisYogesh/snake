@@ -26,20 +26,23 @@ var direction = { ltr: 1, rtl: 2, ttb: 3, btt: 4 },
 
 function animationFrame(a) {
     this.frameID = 0;
-    this.live = false;
+    this.live = null;
     this.frame = function () {
         var _this = this;
-        this.frameID = setTimeout(function () {
-            a.callback();
-            _this.frame();
-        }, a.interval);
-        this.live = true;
+        if (_this.live === null || _this.live === true) {
+            _this.frameID = setTimeout(function () {
+                a.callback();
+                _this.frame();
+            }, a.interval);
+            _this.live = true;
+        }
     }
     this.stop = function () {
         clearTimeout(this.frameID);
         this.live = false;
     }
     this.start = function () {
+        this.live = true;
         this.frame();
     }
     this.frame();
@@ -56,8 +59,12 @@ var snakeApp = (function snakeApp(container) {
     _this.canvas = $("<canvas id='canvas'>").get(0);
     _this.container.append(_this.canvas);
     _this.setup();
-    _this.playGround = new playGround(_this.container, _this.canvas);
-    return this;
+    _this.playGround = new playGround({
+        container: _this.container,
+        canvas: _this.canvas,
+        gridDimention: 14
+    });
+    return _this;
 })._prototype({
     setup: function () {
         var _this = this;
@@ -68,10 +75,11 @@ var snakeApp = (function snakeApp(container) {
     }
 });
 
-var playGround = (function playGround(container, canvas) {
+var playGround = (function playGround(op) {
     var _this = this;
-    _this.container = container;
-    _this.canvas = canvas;
+    _this.container = op.container;
+    _this.canvas = op.canvas;
+    _this.gridDimention = op.gridDimention;
     _this.context = _this.canvas.getContext('2d');
     _this.initPlayground();
     _this.addSnake();
@@ -79,10 +87,9 @@ var playGround = (function playGround(container, canvas) {
 })._prototype({
     drawBackground: function () {
         var _this = this, cx = _this.context, w = _this.canvas.width;
-        //cx.lineWidth = 0.5;
         cx.strokeStyle = "#a7b78e";
         cx.beginPath();
-        for (var q = 0; q < w; q += 10) {
+        for (var q = 0; q < w; q += _this.gridDimention) {
             cx.moveTo(num(q), 0);
             cx.lineTo(num(q), num(_this.canvas.height));
             cx.moveTo(0, num(q));
@@ -122,6 +129,9 @@ var playGround = (function playGround(container, canvas) {
                         };
                     };
                 }
+            } else if (e.keyCode == 13) {
+                if (frame) frame.stop();
+                _this.snake.reset();
             }
         });
     },
@@ -129,25 +139,27 @@ var playGround = (function playGround(container, canvas) {
         this.snake = new snake({
             context: this.context,
             length: 8,
-            color: "#748658"
+            color: "#000",
+            dimention: this.gridDimention
         });
     }
 });
 
 var snake = function () {
     var s = (function snake(config) {
-        this.length = config.length || 4;
-        this.color = config.color || "#000";
-        this.dimention = config.dimention || 10;
-        this.context = config.context || null;
-        this.dir = {
+        var _this = this;
+        _this.length = config.length || 4;
+        _this.color = config.color || "#000";
+        _this.dimention = config.dimention || 10;
+        _this.context = config.context || null;
+        _this.dir = {
             ltr: 1,
             rtl: 2,
             ttb: 3,
             btt: 4
         };
-        this.init();
-        return this;
+        _this.init();
+        return _this;
     })._prototype({
         init: function () {
             this._direction = { _: this.dir.ltr };
@@ -172,6 +184,14 @@ var snake = function () {
         setDirection: function (dir) {
             this._direction._ = this.dir[dir] || this._direction._;
             return this;
+        },
+        reset: function () {
+            var _this = this,
+                segments = _this.snakeSegment.segments;
+            for (var i = 0; i < segments.length; i++) {
+                _this.snakeSegment.clearSegment(segments[i]);
+            };
+            _this.snakeSegment.addSegment(8);
         }
     });
 
@@ -195,8 +215,8 @@ var snake = function () {
             var sg = this.segments.length == 0 ? true : false;
             if (sg) {
                 segment.dimention = this.dimention - 1;
-                segment.x = 100 + 1;
-                segment.y = 100 + 1;
+                segment.x = (this.dimention * 10) + 1;
+                segment.y = (this.dimention * 10) + 1;
             } else {
                 var lastSegment = this.segments[this.segments.length - 1];
                 segment.dimention = this.dimention - 1;
@@ -206,7 +226,8 @@ var snake = function () {
             return this;
         },
         move: function (segment) {
-            var snakeHead = this.clearSegment(segment).getSegment(0);
+            var snakeHead = this.clearSegment(segment).getSegment(0),
+                isSnakeHead = snakeHead == segment;
             if (this.direction != this._direction._) { // if direction changes
                 this.setTurnPoints({
                     x: snakeHead.x,
@@ -215,7 +236,7 @@ var snake = function () {
                 this.direction = this._direction._;
             }
             this._move(segment, this.direction);
-            if (!this.checkSegmentCollide(snakeHead)) {
+            if (!this.checkSegmentCollide(snakeHead, isSnakeHead)) {
                 this.drawSegment(segment);
                 return true;
             } else {
@@ -235,12 +256,14 @@ var snake = function () {
                 }
             }
         },
-        checkSegmentCollide: function (snakeHead) {
+        checkSegmentCollide: function (snakeHead, isSnakeHead) {
             var found = false;
-            for (var i = 1; i < this.segments.length; i++) {
-                if (this.segments[i].x == snakeHead.x && this.segments[i].y == snakeHead.y) {
-                    found = true;
-                    break;
+            if (isSnakeHead) {
+                for (var i = 1; i < this.segments.length; i++) {
+                    if (this.segments[i].x == snakeHead.x && this.segments[i].y == snakeHead.y) {
+                        found = true;
+                        break;
+                    }
                 }
             }
             return found;
@@ -273,11 +296,11 @@ var snake = function () {
             };
         },
         drawSegment: function (segment) {
-            this.context.strokeStyle = "#606f49";
-            this.context.fillStyle = this.color;
-            this.context.fillRect(segment.x, segment.y, segment.dimention, segment.dimention);
-            this.context.strokeRect(segment.x + .5, segment.y + .5, segment.dimention - 1, segment.dimention - 1);
-            return this;
+            var _this = this;
+            _this.context.strokeStyle = _this.context.fillStyle = _this.color;
+            _this.context.fillRect(segment.x + 2, segment.y + 2, segment.dimention - 4, segment.dimention - 4);
+            _this.context.strokeRect(segment.x + .5, segment.y + .5, segment.dimention - 1, segment.dimention - 1);
+            return _this;
         },
         getSegment: function (i) {
             return this.segments[i];
