@@ -58,11 +58,12 @@ var snakeApp = (function snakeApp(container) {
     _this.container = $(container || "body");
     _this.canvas = $("<canvas id='canvas'>").get(0);
     _this.container.append(_this.canvas);
+    _this.gridDimention = 14;
     _this.setup();
     _this.playGround = new playGround({
         container: _this.container,
         canvas: _this.canvas,
-        gridDimention: 14
+        gridDimention: _this.gridDimention
     });
     return _this;
 })._prototype({
@@ -71,7 +72,7 @@ var snakeApp = (function snakeApp(container) {
         _this.reScale();
     },
     reScale: function () {
-        this.canvas.height = this.canvas.width = 400 + 1;
+        this.canvas.height = this.canvas.width = this.gridDimention * 30 + 1;
     }
 });
 
@@ -105,28 +106,27 @@ var playGround = (function playGround(op) {
     setup: function () {
         var _this = this, frame,
             keyCode = [37, 38, 39, 40],
-            _keyCode = { 39: 1, 37: 2, 40: 3, 38: 4 };
+            _keyCode = { 39: 1, 37: 2, 40: 3, 38: 4 },
+            _dir = { 1: "horizontal", 2: "horizontal", 3: "vertical", 4: "vertical" };
         $(window).resize(function () {
             _this.drawBackground();
         }).bind("keyup", function (e) {
             if (keyCode.indexOf(e.keyCode) > -1) {
-                if (_this.snake._direction._ !== _keyCode[e.keyCode] || !frame) {
+                if (checkSnakeDirection(_keyCode[e.keyCode]) || !frame) {
                     if (frame) frame.stop();
-                    if (!_this.snake.setDirection(_direction[_keyCode[e.keyCode]]).move()) {
+                    if (_this.snake.collide || !_this.snake.setDirection(_direction[_keyCode[e.keyCode]]).move()) {
                         frame.stop();
-                    } else {
-                        if (!frame) {
-                            frame = new animationFrame({
-                                callback: function () {
-                                    if (!_this.snake.move()) {
-                                        frame.stop();
-                                    }
-                                },
-                                interval: 400
-                            })
-                        } else if (frame && frame.live === false) {
-                            frame.start();
-                        };
+                    } else if (!frame) {
+                        frame = new animationFrame({
+                            callback: function () {
+                                if (!_this.snake.move()) {
+                                    frame.stop();
+                                }
+                            },
+                            interval: 400
+                        })
+                    } else if (frame && frame.live === false) {
+                        frame.start();
                     };
                 }
             } else if (e.keyCode == 13) {
@@ -134,6 +134,14 @@ var playGround = (function playGround(op) {
                 _this.snake.reset();
             }
         });
+
+        function checkSnakeDirection(dir) {
+            if (_this.snake._direction._ !== dir && _dir[dir] !== _dir[_this.snake._direction._]) {
+                return true;
+            } else {
+                return false;
+            }
+        }
     },
     addSnake: function () {
         this.snake = new snake({
@@ -148,6 +156,7 @@ var playGround = (function playGround(op) {
 var snake = function () {
     var s = (function snake(config) {
         var _this = this;
+        _this.collide = false;
         _this.length = config.length || 4;
         _this.color = config.color || "#000";
         _this.dimention = config.dimention || 10;
@@ -168,18 +177,18 @@ var snake = function () {
         move: function () {
             var segments = this.snakeSegment.segments,
                 isCollide = false;
-            for (var i = 0; i < segments.length; i++) {
-                if (!this.snakeSegment.move(segments[i])) {
-                    isCollide = true;
-                    break;
-                };
+            if (!this.collide) {
+                for (var i = 0; i < segments.length; i++) {
+                    if (!this.snakeSegment.move(segments[i])) {
+                        isCollide = true;
+                        this.collide = true;
+                        break;
+                    };
+                }
+            } else {
+                isCollide = true;
             }
-
             return !isCollide;
-        },
-        moveTo: function (dir) {
-            this.setDirection(dir);
-            this.move();
         },
         setDirection: function (dir) {
             this._direction._ = this.dir[dir] || this._direction._;
@@ -191,7 +200,12 @@ var snake = function () {
             for (var i = 0; i < segments.length; i++) {
                 _this.snakeSegment.clearSegment(segments[i]);
             };
+            segments.length = 0;
+            _this.snakeSegment.removeTurnPoints();
             _this.snakeSegment.addSegment(8);
+            _this.snakeSegment.direction = _this.dir.ltr;
+            _this._direction._ = null;
+            _this.collide = false;
         }
     });
 
@@ -226,20 +240,37 @@ var snake = function () {
             return this;
         },
         move: function (segment) {
-            var snakeHead = this.clearSegment(segment).getSegment(0),
-                isSnakeHead = snakeHead == segment;
-            if (this.direction != this._direction._) { // if direction changes
-                this.setTurnPoints({
+            var _this = this,
+                snakeHead = _this.getSegment(0),
+                isSnakeHead = snakeHead == segment,
+                _snakeHead;
+
+            if (isSnakeHead) {
+                _snakeHead = {
+                    x: snakeHead.x,
+                    y: snakeHead.y,
+                    dimention: snakeHead.dimention
+                };
+            } else {
+                _this.clearSegment(segment);
+            }
+
+            if (_this.direction != _this._direction._) { // if direction changes
+                _this.setTurnPoints({
                     x: snakeHead.x,
                     y: snakeHead.y
                 });
-                this.direction = this._direction._;
+                _this.direction = _this._direction._;
             }
-            this._move(segment, this.direction);
-            if (!this.checkSegmentCollide(snakeHead, isSnakeHead)) {
-                this.drawSegment(segment);
+            _this._move(segment, _this.direction);
+            if (!_this.checkSegmentCollide(snakeHead, isSnakeHead)) {
+                isSnakeHead && _this.clearSegment(_snakeHead);
+                _this.drawSegment(segment);
                 return true;
             } else {
+                // if snake head got collied then return his original position again;
+                snakeHead.x = _snakeHead.x;
+                snakeHead.y = _snakeHead.y;
                 return false; // snake head got collied with one of his segment
             }
         },
@@ -315,7 +346,7 @@ var snake = function () {
             };
             return this;
         },
-        clearTurnPoints: function () {
+        removeTurnPoints: function () {
             this.turnPoints.length = 0;
         },
         matchTurnPoint: function (segment) {
@@ -331,9 +362,6 @@ var snake = function () {
                 }
             }
             return found;
-        },
-        removeTurnPoints: function (turnPoint) {
-            this.turnPoints.splice(turnPoint.index, 1);
         }
     });
 
