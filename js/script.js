@@ -53,14 +53,16 @@ function num(a) {
     return a + 0.5;
 }
 
-var snakeApp = (function snakeApp(container) {
+var snakeApp = (function snakeApp(config) {
     var _this = this;
-    _this.container = $(container || "body");
+    !config && (config = {});
+    _this.container = $(config.container || "body");
+    _this.media = config.media;
     _this.canvas = $("<canvas id='canvas'>").get(0);
     _this.container.append(_this.canvas);
     _this.gridDimention = 14;
     _this.setup();
-    _this.playGround = new playGround({
+    _this.playGround = new (playGround._inheritInstance(_this))({
         container: _this.container,
         canvas: _this.canvas,
         gridDimention: _this.gridDimention
@@ -136,15 +138,11 @@ var playGround = (function playGround(op) {
         });
 
         function checkSnakeDirection(dir) {
-            if (_this.snake._direction._ !== dir && _dir[dir] !== _dir[_this.snake._direction._]) {
-                return true;
-            } else {
-                return false;
-            }
+            return _this.snake._direction._ !== dir && _dir[dir] !== _dir[_this.snake._direction._];
         }
     },
     addSnake: function () {
-        this.snake = new snake({
+        this.snake = new (snake._inheritInstance(this))({
             playGroundContext: this.context,
             length: 8,
             color: "#000",
@@ -158,6 +156,8 @@ var snakeFood = (function snakeFood(config) {
     _this.rengeHeight = config.height;
     _this.rengeWidth = config.width;
     _this.snake = config.snake;
+    _this._food = null;
+    _this.giveFood();
     return this;
 })._prototype({
     genetareRandomPos: function () {
@@ -170,7 +170,7 @@ var snakeFood = (function snakeFood(config) {
     giveFood: function () {
         var FoodPos = this.returnFoodPos(this.snake.snakeSegment.segments);
         this.drawFood(FoodPos);
-        return FoodPos;
+        return this._food = FoodPos;
     },
     returnFoodPos: function (segments) {
         var pos = this.genetareRandomPos();
@@ -219,27 +219,33 @@ var snake = function () {
             };
             _this.collide = false;
             _this._direction = { _: _this.dir.ltr };
+            _this.snakeSegment = new (snakeSegment._inheritInstance(_this))(_this);
             _this.food = new snakeFood({
                 height: _this.playGroundContext.canvas.height,
                 width: _this.playGroundContext.canvas.width,
                 snake: _this
             });
-            _this.snakeSegment = new (snakeSegment._inheritInstance(_this));
         },
         move: function () {
-            var segments = this.snakeSegment.segments,
+            var _this = this,
+                segments = _this.snakeSegment.segments,
                 isCollide = false;
-            if (!this.collide) {
+            if (!_this.collide) {
                 for (var i = 0; i < segments.length; i++) {
-                    if (!this.snakeSegment.move(segments[i])) {
+                    if (!_this.snakeSegment.move(segments[i])) {
                         isCollide = true;
-                        this.collide = true;
+                        _this.collide = true;
                         break;
                     };
                 }
             } else {
                 isCollide = true;
             }
+
+            if (isCollide && _this.media) { // if snake collide then play the media
+                _this.media.collide.play();
+            }
+
             return !isCollide;
         },
         setDirection: function (dir) {
@@ -258,14 +264,20 @@ var snake = function () {
             _this.snakeSegment.direction = _this.dir.ltr;
             _this._direction._ = null;
             _this.collide = false;
+        },
+        eaten: function () {
+            this.media && this.media.eaten.play();
+            this.food.giveFood();
         }
     });
 
-    var snakeSegment = (function snakeSegment() {
-        this.addSegment();
-        this.turnPoints = [];
-        this.direction = this._direction._;
-        return this;
+    var snakeSegment = (function snakeSegment(snake) {
+        var _this = this;
+        _this.snake = snake;
+        _this.addSegment();
+        _this.turnPoints = [];
+        _this.direction = _this._direction._;
+        return _this;
     })._prototype({
         createSegment: function () {
             var segment = {
@@ -316,7 +328,10 @@ var snake = function () {
             }
             _this._move(segment, _this.direction);
             if (!_this.checkSegmentCollide(snakeHead, isSnakeHead)) {
-                isSnakeHead && _this.clearSegment(_snakeHead);
+                if (isSnakeHead) {
+                    _this.clearSegment(_snakeHead);
+                    _this.checkFood(segment);
+                }
                 _this.drawSegment(segment);
                 return true;
             } else {
@@ -337,6 +352,11 @@ var snake = function () {
                 } else if (dir == this.dir.btt) {
                     segment.y = segment.y - (segment.dimention + 1);
                 }
+            }
+        },
+        checkFood: function (segment) {
+            if (segment.x == this.snake.food._food.x && segment.y == this.snake.food._food.y) {
+                this.snake.eaten();
             }
         },
         checkSegmentCollide: function (snakeHead, isSnakeHead) {

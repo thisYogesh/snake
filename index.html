@@ -1,16 +1,41 @@
 <!doctype html>
 <html>
-    <head>
-        <title>Javascript Snake Game with Canvas</title>
-        <link rel="stylesheet" href="css/style.css">
-        <script type="text/javascript" src="js/script.js"></script>
-        <script type="text/javascript" src="js/jquery.min.js"></script>
-        <script type="text/javascript">
-            $(function(){
-                window.app = new snakeApp();
+
+<head>
+    <title>Javascript Snake Game with Canvas</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script type="text/javascript" src="js/script.js"></script>
+    <script type="text/javascript" src="js/jquery.min.js"></script>
+    <script type="text/javascript">
+        $(function () {
+            window.app = new snakeApp({
+                media: function () {
+                    var _media = {
+                        collide: $("<audio>").eq(0).attr("src", "sounds/collide2.wav").get(0),
+                        eaten: $("<audio>").eq(0).attr("src", "sounds/coins.wav").get(0),
+                    };
+
+                    return {
+                        collide: {
+                            play: function () {
+                                _media.collide.currentTime = 0;
+                                _media.collide.play()
+                            }
+                        },
+                        eaten: {
+                            play: function () {
+                                _media.eaten.currentTime = 0;
+                                _media.eaten.play()
+                            }
+                        }
+                    };
+                }()
             });
-        </script>
-    </head>
-    <body>
-    </body>
+        });
+    </script>
+</head>
+
+<body>
+</body>
+
 </html>
