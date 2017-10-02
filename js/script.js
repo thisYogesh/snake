@@ -145,7 +145,7 @@ var playGround = (function playGround(op) {
     },
     addSnake: function () {
         this.snake = new snake({
-            context: this.context,
+            playGroundContext: this.context,
             length: 8,
             color: "#000",
             dimention: this.gridDimention
@@ -153,26 +153,78 @@ var playGround = (function playGround(op) {
     }
 });
 
+var snakeFood = (function snakeFood(config) {
+    var _this = this;
+    _this.rengeHeight = config.height;
+    _this.rengeWidth = config.width;
+    _this.snake = config.snake;
+    return this;
+})._prototype({
+    genetareRandomPos: function () {
+        return {
+            x: Math.floor(Math.random() * this.rengeWidth - 1),
+            y: Math.floor(Math.random() * this.rengeHeight - 1),
+            dimention: this.snake.dimention - 1
+        };
+    },
+    giveFood: function () {
+        var FoodPos = this.returnFoodPos(this.snake.snakeSegment.segments);
+        this.drawFood(FoodPos);
+        return FoodPos;
+    },
+    returnFoodPos: function (segments) {
+        var pos = this.genetareRandomPos();
+        pos.x = (Math.round(pos.x / this.snake.dimention) * this.snake.dimention) + 1;
+        pos.y = (Math.round(pos.y / this.snake.dimention) * this.snake.dimention) + 1;
+        for (var i = 0; i < segments.length; i++) {
+            if (((pos.x >= segments[i].x && pos.x <= segments[i].x + segments[i].dimention) || (pos.x + pos.dimention >= segments[i].x && pos.x + pos.dimention <= segments[i].x + segments[i].dimention)) && ((pos.y >= segments[i].y && pos.y <= segments[i].y + segments[i].dimention) || (pos.y + pos.dimention >= segments[i].y && pos.y + pos.dimention <= segments[i].y + segments[i].dimention))) {
+                pos = this.returnFoodPos(segments);
+                break;
+            }
+        };
+
+        return pos;
+    },
+    drawFood: function (food) {
+        var _this = this;
+        _this.snake.playGroundContext.strokeStyle = _this.snake.playGroundContext.fillStyle = "#b22";
+        _this.snake.playGroundContext.fillRect(food.x + 2, food.y + 2, food.dimention - 4, food.dimention - 4);
+        _this.snake.playGroundContext.strokeRect(food.x + .5, food.y + .5, food.dimention - 1, food.dimention - 1);
+
+        return _this;
+    },
+    clearFood: function (food) {
+        this.snake.playGroundContext.clearRect(food.x, food.y, food.dimention, food.dimention);
+        return this;
+    }
+});
+
 var snake = function () {
     var s = (function snake(config) {
         var _this = this;
-        _this.collide = false;
         _this.length = config.length || 4;
         _this.color = config.color || "#000";
         _this.dimention = config.dimention || 10;
-        _this.context = config.context || null;
-        _this.dir = {
-            ltr: 1,
-            rtl: 2,
-            ttb: 3,
-            btt: 4
-        };
+        _this.playGroundContext = config.playGroundContext || null;
         _this.init();
         return _this;
     })._prototype({
         init: function () {
-            this._direction = { _: this.dir.ltr };
-            this.snakeSegment = new (snakeSegment._inheritInstance(this));
+            var _this = this;
+            _this.dir = {
+                ltr: 1,
+                rtl: 2,
+                ttb: 3,
+                btt: 4
+            };
+            _this.collide = false;
+            _this._direction = { _: _this.dir.ltr };
+            _this.food = new snakeFood({
+                height: _this.playGroundContext.canvas.height,
+                width: _this.playGroundContext.canvas.width,
+                snake: _this
+            });
+            _this.snakeSegment = new (snakeSegment._inheritInstance(_this));
         },
         move: function () {
             var segments = this.snakeSegment.segments,
@@ -317,7 +369,7 @@ var snake = function () {
             }
         },
         clearSegment: function (segment) {
-            this.context.clearRect(segment.x, segment.y, segment.dimention, segment.dimention);
+            this.playGroundContext.clearRect(segment.x, segment.y, segment.dimention, segment.dimention);
             return this;
         },
         addSegment: function (length) {
@@ -328,9 +380,9 @@ var snake = function () {
         },
         drawSegment: function (segment) {
             var _this = this;
-            _this.context.strokeStyle = _this.context.fillStyle = _this.color;
-            _this.context.fillRect(segment.x + 2, segment.y + 2, segment.dimention - 4, segment.dimention - 4);
-            _this.context.strokeRect(segment.x + .5, segment.y + .5, segment.dimention - 1, segment.dimention - 1);
+            _this.playGroundContext.strokeStyle = _this.playGroundContext.fillStyle = _this.color;
+            _this.playGroundContext.fillRect(segment.x + 2, segment.y + 2, segment.dimention - 4, segment.dimention - 4);
+            _this.playGroundContext.strokeRect(segment.x + .5, segment.y + .5, segment.dimention - 1, segment.dimention - 1);
             return _this;
         },
         getSegment: function (i) {
