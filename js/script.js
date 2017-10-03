@@ -274,9 +274,9 @@ var snake = function () {
     var snakeSegment = (function snakeSegment(snake) {
         var _this = this;
         _this.snake = snake;
+        _this.direction = _this._direction._;
         _this.addSegment();
         _this.turnPoints = [];
-        _this.direction = _this._direction._;
         return _this;
     })._prototype({
         createSegment: function () {
@@ -290,18 +290,33 @@ var snake = function () {
             this.drawSegment(segment);
         },
         positionize: function (segment) {
-            var sg = this.segments.length == 0 ? true : false;
-            if (sg) {
-                segment.dimention = this.dimention - 1;
-                segment.x = (this.dimention * 10) + 1;
-                segment.y = (this.dimention * 10) + 1;
+            var _this = this;
+            if (_this.segments.length == 0) { // initial position setup
+                segment.dimention = _this.dimention - 1;
+                segment.x = (_this.dimention * 10) + 1;
+                segment.y = (_this.dimention * 10) + 1;
             } else {
-                var lastSegment = this.segments[this.segments.length - 1];
-                segment.dimention = this.dimention - 1;
-                segment.x = lastSegment.x - lastSegment.dimention - 1;
-                segment.y = lastSegment.y;
+                var lastSegment = _this.segments[_this.segments.length - 1],
+                    has_rDirection = lastSegment.resolveDirection ? lastSegment.resolveDirection.match(/\d+$/) : false,
+                    rDirection = has_rDirection ? Number(has_rDirection[0]) : _this.direction;
+
+                segment.dimention = _this.dimention - 1;
+                if (rDirection == _this.dir.ltr) {
+                    segment.x = lastSegment.x - lastSegment.dimention - 1;
+                    segment.y = lastSegment.y;
+                } else if (rDirection == _this.dir.rtl) {
+                    segment.x = lastSegment.x + lastSegment.dimention - 1;
+                    segment.y = lastSegment.y;
+                } else if (rDirection == _this.dir.ttb) {
+                    segment.y = lastSegment.y - lastSegment.dimention - 1;
+                    segment.x = lastSegment.x;
+                } else if (rDirection == _this.dir.btt) {
+                    segment.y = lastSegment.y + lastSegment.dimention - 1;
+                    segment.x = lastSegment.x;
+                }
+                segment.resolveDirection = lastSegment.resolveDirection;
             }
-            return this;
+            return _this;
         },
         move: function (segment) {
             var _this = this,
@@ -356,6 +371,7 @@ var snake = function () {
         },
         checkFood: function (segment) {
             if (segment.x == this.snake.food._food.x && segment.y == this.snake.food._food.y) {
+                this.addSegment(1);
                 this.snake.eaten();
             }
         },
