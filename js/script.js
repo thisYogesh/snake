@@ -297,7 +297,7 @@ var snake = function () {
                 segment.y = (_this.dimention * 10) + 1;
             } else {
                 var lastSegment = _this.segments[_this.segments.length - 1],
-                    has_rDirection = lastSegment.resolveDirection ? lastSegment.resolveDirection.match(/\d+$/) : false,
+                    has_rDirection = lastSegment.resolveDirection ? lastSegment.resolveDirection.match(/^\d+/) : false,
                     rDirection = has_rDirection ? Number(has_rDirection[0]) : _this.direction;
 
                 segment.dimention = _this.dimention - 1;
@@ -305,13 +305,13 @@ var snake = function () {
                     segment.x = lastSegment.x - lastSegment.dimention - 1;
                     segment.y = lastSegment.y;
                 } else if (rDirection == _this.dir.rtl) {
-                    segment.x = lastSegment.x + lastSegment.dimention - 1;
+                    segment.x = lastSegment.x + lastSegment.dimention + 1;
                     segment.y = lastSegment.y;
                 } else if (rDirection == _this.dir.ttb) {
                     segment.y = lastSegment.y - lastSegment.dimention - 1;
                     segment.x = lastSegment.x;
                 } else if (rDirection == _this.dir.btt) {
-                    segment.y = lastSegment.y + lastSegment.dimention - 1;
+                    segment.y = lastSegment.y + lastSegment.dimention + 1;
                     segment.x = lastSegment.x;
                 }
                 segment.resolveDirection = lastSegment.resolveDirection;
