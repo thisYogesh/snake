@@ -125,7 +125,7 @@ var playGround = (function playGround(op) {
                                     frame.stop();
                                 }
                             },
-                            interval: 400
+                            interval: 200
                         })
                     } else if (frame && frame.live === false) {
                         frame.start();
@@ -187,7 +187,7 @@ var snakeFood = (function snakeFood(config) {
     },
     drawFood: function (food) {
         var _this = this;
-        _this.snake.playGroundContext.strokeStyle = _this.snake.playGroundContext.fillStyle = "#b22";
+        _this.snake.playGroundContext.strokeStyle = _this.snake.playGroundContext.fillStyle = "#434e32";
         _this.snake.playGroundContext.fillRect(food.x + 2, food.y + 2, food.dimention - 4, food.dimention - 4);
         _this.snake.playGroundContext.strokeRect(food.x + .5, food.y + .5, food.dimention - 1, food.dimention - 1);
 
