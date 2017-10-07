@@ -1,6 +1,5 @@
 //
 'use strict';
-
 // extends Functions prototype 
 Function.prototype._prototype = function (proto) {
     for (var key in proto) {
@@ -22,7 +21,8 @@ Function.prototype._inheritInstance = function (Obj) {
 };
 
 var direction = { ltr: 1, rtl: 2, ttb: 3, btt: 4 },
-    _direction = { 1: "ltr", 2: "rtl", 3: "ttb", 4: "btt" };
+    _direction = { 1: "ltr", 2: "rtl", 3: "ttb", 4: "btt" },
+    _status = { started: "started", stoped: "stoped", paused: "paused", collided: "collided" };
 
 function animationFrame(a) {
     this.frameID = 0;
@@ -61,6 +61,7 @@ var snakeApp = (function snakeApp(config) {
     _this.canvas = $("<canvas id='canvas'>").get(0);
     _this.container.append(_this.canvas);
     _this.gridDimention = 14;
+    _this.app = { status: _status.stoped };
     _this.setup();
     _this.playGround = new (playGround._inheritInstance(_this))({
         container: _this.container,
@@ -109,42 +110,74 @@ var playGround = (function playGround(op) {
         var _this = this, frame,
             keyCode = [37, 38, 39, 40],
             _keyCode = { 39: 1, 37: 2, 40: 3, 38: 4 },
-            _dir = { 1: "horizontal", 2: "horizontal", 3: "vertical", 4: "vertical" };
+            lastKeyCode = null,
+            _dir = { 1: "horizontal", 2: "horizontal", 3: "vertical", 4: "vertical" },
+            checkFastFrame,
+            animationOption = {
+                fastFrame: false,
+                callback: function () {
+                    if (!_this.snake.move()) {
+                        frame.stop();
+                    }
+                },
+                interval: 200
+            }, keypress;
         $(window).resize(function () {
-            _this.drawBackground();
-        }).bind("keyup", function (e) {
+            //_this.drawBackground();
+        }).keydown(function (e) {
+            if (keypress && lastKeyCode == e.keyCode) return;
+            keypress = true; lastKeyCode = e.keyCode;
             if (keyCode.indexOf(e.keyCode) > -1) {
-                if (checkSnakeDirection(_keyCode[e.keyCode]) || !frame) {
+                if (_this.checkSnakeDirection(_keyCode[e.keyCode], _dir, animationOption, checkFastFrame, frame)) {
                     if (frame) frame.stop();
                     if (_this.snake.collide || !_this.snake.setDirection(_direction[_keyCode[e.keyCode]]).move()) {
+                        _this.app.status = _status.collided;
                         frame.stop();
                     } else if (!frame) {
-                        frame = new animationFrame({
-                            callback: function () {
-                                if (!_this.snake.move()) {
-                                    frame.stop();
-                                }
-                            },
-                            interval: 200
-                        })
+                        _this.app.status = _status.started;
+                        frame = new animationFrame(animationOption);
                     } else if (frame && frame.live === false) {
                         frame.start();
+                        _this.app.status = _status.started;
                     };
                 }
             } else if (e.keyCode == 13) {
                 if (frame) frame.stop();
                 _this.snake.reset();
             }
+        }).keyup(function (e) {
+            keypress = false;
+            animationOption.fastFrame = false;
+            animationOption.interval = 200;
         });
-
-        function checkSnakeDirection(dir) {
-            return _this.snake._direction._ !== dir && _dir[dir] !== _dir[_this.snake._direction._];
+    },
+    checkSnakeDirection: function (dir, _dir, animationOption, checkFastFrame, frame) {
+        var _this = this, snakeCheck = false;
+        if (_this.app.status == _status.stoped && _this.snake._direction._ !== dir && _dir[dir] == _dir[_this.snake._direction._] && _this.snake.snakeSegment.length > 1) {
+            snakeCheck = false;
+        } else if (_this.app.status == _status.stoped && !frame) {
+            snakeCheck = true;
         }
+
+        !snakeCheck && (snakeCheck = _this.snake._direction._ !== dir && _dir[dir] !== _dir[_this.snake._direction._]);
+
+        if (_this.app.status == _status.started && (dir == _this.snake._direction._ || (dir != _this.snake._direction._ && _dir[dir] != _dir[_this.snake._direction._]))) {
+            /* Increase speed if key press for longer */
+            animationOption.fastFrame = true;
+            checkFastFrame !== undefined && clearTimeout(checkFastFrame);
+            checkFastFrame = setTimeout(function () {
+                if (animationOption.fastFrame == true) {
+                    animationOption.interval = 50;
+                };
+            }, 100);
+        };
+
+        return snakeCheck;
     },
     addSnake: function () {
         this.snake = new (snake._inheritInstance(this))({
             playGroundContext: this.context,
-            length: 8,
+            initLength: 3,
             color: "#000",
             dimention: this.gridDimention
         });
@@ -177,7 +210,7 @@ var snakeFood = (function snakeFood(config) {
         var pos = this.genetareRandomPos();
         pos.x = (Math.floor(pos.x / this.snake.dimention) * this.snake.dimention) + 1;
         pos.y = (Math.floor(pos.y / this.snake.dimention) * this.snake.dimention) + 1;
-        
+
         for (var i = 0; i < segments.length; i++) {
             if (((pos.x >= segments[i].x && pos.x <= segments[i].x + segments[i].dimention) || (pos.x + pos.dimention >= segments[i].x && pos.x + pos.dimention <= segments[i].x + segments[i].dimention)) && ((pos.y >= segments[i].y && pos.y <= segments[i].y + segments[i].dimention) || (pos.y + pos.dimention >= segments[i].y && pos.y + pos.dimention <= segments[i].y + segments[i].dimention))) {
                 pos = this.returnFoodPos(segments);
@@ -204,7 +237,7 @@ var snakeFood = (function snakeFood(config) {
 var snake = function () {
     var s = (function snake(config) {
         var _this = this;
-        _this.length = config.length || 4;
+        _this.length = _this.initLength = config.initLength || 4;
         _this.color = config.color || "#000";
         _this.dimention = config.dimention || 10;
         _this.playGroundContext = config.playGroundContext || null;
@@ -226,7 +259,7 @@ var snake = function () {
                 height: _this.playGroundContext.canvas.height,
                 width: _this.playGroundContext.canvas.width,
                 snake: _this,
-                color: "#ea4335"
+                color: "#b22"
             });
         },
         move: function () {
@@ -263,8 +296,8 @@ var snake = function () {
             };
             segments.length = 0;
             _this.snakeSegment.removeTurnPoints();
-            _this.snakeSegment.addSegment(8);
             _this.snakeSegment.direction = _this.dir.ltr;
+            _this.snakeSegment.addSegment(_this.initLength);
             _this._direction._ = null;
             _this.collide = false;
         },
@@ -282,18 +315,20 @@ var snake = function () {
         _this.turnPoints = [];
         return _this;
     })._prototype({
-        createSegment: function () {
-            var segment = {
-                dimention: this.dimention,
+        createSegment: function (isDynamic) {
+            var _this = this, segment = {
+                dimention: _this.dimention,
                 x: 0,
                 y: 0
             };
-            this.segments = this.segments || [];
-            this.positionize(segment).segments.push(segment);
-            this.drawSegment(segment);
+            _this.segments = _this.segments || [];
+            _this.positionize(segment, isDynamic).segments.push(segment);
+            _this.drawSegment(segment);
+            _this.length == _this.segments.length;
         },
-        positionize: function (segment) {
-            var _this = this;
+        positionize: function (segment, isDynamic) {
+            var _this = this,
+                initAddSS = isDynamic && _this.segments.length == 1 ? 2 : 1;
             if (_this.segments.length == 0) { // initial position setup
                 segment.dimention = _this.dimention - 1;
                 segment.x = (_this.dimention * 10) + 1;
@@ -305,16 +340,16 @@ var snake = function () {
 
                 segment.dimention = _this.dimention - 1;
                 if (rDirection == _this.dir.ltr) {
-                    segment.x = lastSegment.x - lastSegment.dimention - 1;
+                    segment.x = lastSegment.x - (lastSegment.dimention * initAddSS) - (1 * initAddSS);
                     segment.y = lastSegment.y;
                 } else if (rDirection == _this.dir.rtl) {
-                    segment.x = lastSegment.x + lastSegment.dimention + 1;
+                    segment.x = lastSegment.x + (lastSegment.dimention * initAddSS) + (1 * initAddSS);
                     segment.y = lastSegment.y;
                 } else if (rDirection == _this.dir.ttb) {
-                    segment.y = lastSegment.y - lastSegment.dimention - 1;
+                    segment.y = lastSegment.y - (lastSegment.dimention * initAddSS) - (1 * initAddSS);
                     segment.x = lastSegment.x;
                 } else if (rDirection == _this.dir.btt) {
-                    segment.y = lastSegment.y + lastSegment.dimention + 1;
+                    segment.y = lastSegment.y + (lastSegment.dimention * initAddSS) + (1 * initAddSS);
                     segment.x = lastSegment.x;
                 }
                 segment.resolveDirection = lastSegment.resolveDirection;
@@ -374,7 +409,7 @@ var snake = function () {
         },
         checkFood: function (segment) {
             if (segment.x == this.snake.food._food.x && segment.y == this.snake.food._food.y) {
-                this.addSegment(1);
+                this.addSegment(1, true);
                 this.snake.eaten();
             }
         },
@@ -411,10 +446,10 @@ var snake = function () {
             this.playGroundContext.clearRect(segment.x, segment.y, segment.dimention, segment.dimention);
             return this;
         },
-        addSegment: function (length) {
+        addSegment: function (length, isDynamic) {
             length = length || this.length;
             for (var i = 0; i < length; i++) {
-                this.createSegment();
+                this.createSegment(isDynamic);
             };
         },
         drawSegment: function (segment) {
