@@ -155,6 +155,7 @@ var snakeFood = (function snakeFood(config) {
     var _this = this;
     _this.rengeHeight = config.height;
     _this.rengeWidth = config.width;
+    _this.color = config.color || "#000"
     _this.snake = config.snake;
     _this._food = null;
     _this.giveFood();
@@ -162,8 +163,8 @@ var snakeFood = (function snakeFood(config) {
 })._prototype({
     genetareRandomPos: function () {
         return {
-            x: Math.floor(Math.random() * this.rengeWidth - 1),
-            y: Math.floor(Math.random() * this.rengeHeight - 1),
+            x: Math.floor(Math.random() * (this.rengeWidth - 1)),
+            y: Math.floor(Math.random() * (this.rengeHeight - 1)),
             dimention: this.snake.dimention - 1
         };
     },
@@ -174,8 +175,9 @@ var snakeFood = (function snakeFood(config) {
     },
     returnFoodPos: function (segments) {
         var pos = this.genetareRandomPos();
-        pos.x = (Math.round(pos.x / this.snake.dimention) * this.snake.dimention) + 1;
-        pos.y = (Math.round(pos.y / this.snake.dimention) * this.snake.dimention) + 1;
+        pos.x = (Math.floor(pos.x / this.snake.dimention) * this.snake.dimention) + 1;
+        pos.y = (Math.floor(pos.y / this.snake.dimention) * this.snake.dimention) + 1;
+        
         for (var i = 0; i < segments.length; i++) {
             if (((pos.x >= segments[i].x && pos.x <= segments[i].x + segments[i].dimention) || (pos.x + pos.dimention >= segments[i].x && pos.x + pos.dimention <= segments[i].x + segments[i].dimention)) && ((pos.y >= segments[i].y && pos.y <= segments[i].y + segments[i].dimention) || (pos.y + pos.dimention >= segments[i].y && pos.y + pos.dimention <= segments[i].y + segments[i].dimention))) {
                 pos = this.returnFoodPos(segments);
@@ -187,7 +189,7 @@ var snakeFood = (function snakeFood(config) {
     },
     drawFood: function (food) {
         var _this = this;
-        _this.snake.playGroundContext.strokeStyle = _this.snake.playGroundContext.fillStyle = "#434e32";
+        _this.snake.playGroundContext.strokeStyle = _this.snake.playGroundContext.fillStyle = _this.color;
         _this.snake.playGroundContext.fillRect(food.x + 2, food.y + 2, food.dimention - 4, food.dimention - 4);
         _this.snake.playGroundContext.strokeRect(food.x + .5, food.y + .5, food.dimention - 1, food.dimention - 1);
 
@@ -223,7 +225,8 @@ var snake = function () {
             _this.food = new snakeFood({
                 height: _this.playGroundContext.canvas.height,
                 width: _this.playGroundContext.canvas.width,
-                snake: _this
+                snake: _this,
+                color: "#ea4335"
             });
         },
         move: function () {
