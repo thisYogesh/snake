@@ -19,16 +19,22 @@ Function.prototype._inheritInstance = function (Obj) {
     }
     return this;
 };
+Number.prototype._Pixel = function () {
+    // for canvas co-ordinate positionization
+    var _this = this;
+    _this += .5;
+    return _this;
+}
 
 var direction = { ltr: 1, rtl: 2, ttb: 3, btt: 4 },
     _direction = { 1: "ltr", 2: "rtl", 3: "ttb", 4: "btt" },
     _status = { started: "started", stoped: "stoped", paused: "paused", collided: "collided" };
 
 function animationFrame(a) {
-    this.frameID = 0;
-    this.live = null;
-    this.frame = function () {
-        var _this = this;
+    var _this = this;
+    _this.frameID = 0;
+    _this.live = null;
+    _this.frame = function () {
         if (_this.live === null || _this.live === true) {
             _this.frameID = setTimeout(function () {
                 a.callback();
@@ -37,16 +43,16 @@ function animationFrame(a) {
             _this.live = true;
         }
     }
-    this.stop = function () {
+    _this.stop = function () {
         clearTimeout(this.frameID);
-        this.live = false;
+        _this.live = false;
     }
-    this.start = function () {
-        this.live = true;
-        this.frame();
+    _this.start = function () {
+        _this.live = true;
+        _this.frame();
     }
-    this.frame();
-    return this;
+    _this.frame();
+    return _this;
 }
 
 function num(a) {
@@ -60,6 +66,7 @@ var snakeApp = (function snakeApp(config) {
     _this.media = config.media;
     _this.canvas = $("<canvas id='canvas'>").get(0);
     _this.container.append(_this.canvas);
+    _this.playGroundArea = config.playGroundArea || 420;
     _this.gridDimention = 14;
     _this.app = { status: _status.stoped };
     _this.setup();
@@ -75,7 +82,7 @@ var snakeApp = (function snakeApp(config) {
         _this.reScale();
     },
     reScale: function () {
-        this.canvas.height = this.canvas.width = this.gridDimention * 30 + 1;
+        this.canvas.height = this.canvas.width = this.playGroundArea + 1;
     }
 });
 
@@ -94,10 +101,10 @@ var playGround = (function playGround(op) {
         cx.strokeStyle = "#a7b78e";
         cx.beginPath();
         for (var q = 0; q < w; q += _this.gridDimention) {
-            cx.moveTo(num(q), 0);
-            cx.lineTo(num(q), num(_this.canvas.height));
-            cx.moveTo(0, num(q));
-            cx.lineTo(num(_this.canvas.width), num(q));
+            cx.moveTo((q)._Pixel(), 0);
+            cx.lineTo((q)._Pixel(), (_this.canvas.height)._Pixel());
+            cx.moveTo(0, (q)._Pixel());
+            cx.lineTo((_this.canvas.width)._Pixel(), (q)._Pixel());
         }
         cx.closePath();
         cx.stroke();
@@ -125,9 +132,11 @@ var playGround = (function playGround(op) {
         $(window).resize(function () {
             //_this.drawBackground();
         }).keydown(function (e) {
-            if (keypress && lastKeyCode == e.keyCode) return;
+            if (keypress && lastKeyCode == e.keyCode) {
+                e.stopImmediatePropagation(); return;
+            }
             keypress = true; lastKeyCode = e.keyCode;
-            if (keyCode.indexOf(e.keyCode) > -1) {
+            if (keyCode.indexOf(e.keyCode) > -1 && (_this.app.status == _status.started || _this.app.status == _status.stoped)) {
                 if (_this.checkSnakeDirection(_keyCode[e.keyCode], _dir, animationOption, checkFastFrame, frame)) {
                     if (frame) frame.stop();
                     if (_this.snake.collide || !_this.snake.setDirection(_direction[_keyCode[e.keyCode]]).move()) {
@@ -135,7 +144,7 @@ var playGround = (function playGround(op) {
                         frame.stop();
                     } else if (!frame) {
                         _this.app.status = _status.started;
-                        frame = new animationFrame(animationOption);
+                        frame = _this.frame = new animationFrame(animationOption);
                     } else if (frame && frame.live === false) {
                         frame.start();
                         _this.app.status = _status.started;
@@ -144,6 +153,10 @@ var playGround = (function playGround(op) {
             } else if (e.keyCode == 13) {
                 if (frame) frame.stop();
                 _this.snake.reset();
+            }
+        }).keydown(function (e) {
+            if (e.keyCode == 32) {
+                _this._pp();
             }
         }).keyup(function (e) {
             keypress = false;
@@ -173,6 +186,24 @@ var playGround = (function playGround(op) {
         };
 
         return snakeCheck;
+    },
+    _pp: function () {
+        var _this = this;
+        if (_this.app.status == _status.started) {
+            _this.pause();
+        } else if (_this.app.status == _status.paused) {
+            _this.play();
+        }
+    },
+    play: function () {
+        var _this = this;
+        _this.app.status = _status.started;
+        _this.frame && _this.frame.start();
+    },
+    pause: function () {
+        var _this = this;
+        _this.app.status = _status.paused;
+        _this.frame && _this.frame.stop();
     },
     addSnake: function () {
         this.snake = new (snake._inheritInstance(this))({
@@ -300,6 +331,7 @@ var snake = function () {
             _this.snakeSegment.addSegment(_this.initLength);
             _this._direction._ = null;
             _this.collide = false;
+            _this.app.status = _status.stoped;
         },
         eaten: function () {
             this.media && this.media.eaten.play();
@@ -395,6 +427,7 @@ var snake = function () {
             }
         },
         _move: function (segment, dir, resolve) {
+            // change the position of each segment as per the direction
             if (this.resolveSegmentDirection(segment, resolve)) {
                 if (dir == this.dir.ltr) {
                     segment.x = segment.x + (segment.dimention + 1);
@@ -405,9 +438,21 @@ var snake = function () {
                 } else if (dir == this.dir.btt) {
                     segment.y = segment.y - (segment.dimention + 1);
                 }
+
+                // reset bounding position
+                if (segment.x < 0) {
+                    segment.x = (this.gridDimention * ((this.playGroundArea / this.gridDimention) - 1)) + 1;
+                } else if (segment.y < 0) {
+                    segment.y = (this.gridDimention * ((this.playGroundArea / this.gridDimention) - 1)) + 1;
+                } else if (segment.x > this.playGroundArea) {
+                    segment.x = 1;
+                } else if (segment.y > this.playGroundArea) {
+                    segment.y = 1;
+                }
             }
         },
         checkFood: function (segment) {
+            // check the snakes head is reached to the food position
             if (segment.x == this.snake.food._food.x && segment.y == this.snake.food._food.y) {
                 this.addSegment(1, true);
                 this.snake.eaten();
@@ -426,6 +471,7 @@ var snake = function () {
             return found;
         },
         resolveSegmentDirection: function (segment, resolve) {
+            // resolve the segments pending direction
             if (segment.resolveDirection && !resolve) {
                 var dirs = segment.resolveDirection.split(" ");
                 this._move(segment, dirs[0], true);
