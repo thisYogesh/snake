@@ -3,12 +3,15 @@
 
 <head>
     <title>Javascript Snake Game with Canvas</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/fonts.css">
     <script type="text/javascript" src="js/snakeApp.js"></script>
     <script type="text/javascript" src="js/jquery.min.js"></script>
     <script type="text/javascript">
         $(function () {
             window.app = new snakeApp({
+                container: "#container",
                 media: function () {
                     var _media = {
                         collide: $("<audio>").eq(0).attr("src", "sounds/collide2.wav").get(0),
@@ -35,7 +38,35 @@
     </script>
 </head>
 
-<body>
+<body class="clearfix">
+    <div id="container"></div>
+    <section class="game-setting-info">
+        <div class="setting-group">
+            <div class="infosep">
+                <div class="key-button arrow-key">&larr;</div> Move Left
+            </div>
+            <div class="infosep">
+                <div class="key-button arrow-key">&rarr;</div> Move Right
+            </div>
+        </div>
+        <div class="setting-group">
+            <div class="infosep">
+                <div class="key-button arrow-key">&uarr;</div> Move Up
+            </div>
+            <div class="infosep">
+                <div class="key-button arrow-key">&darr;</div> Move Down
+            </div>
+        </div>
+        <div class="setting-group">
+            <div class="infosep">
+                <div class="key-button space-key">SPACEBAR</div> Pause Game
+            </div>
+            <div class="infosep">
+                <div class="key-button enter-key">ENTER</div> Restart Game
+            </div>
+        </div>
+        <div class="setting-tip">Note: Press arrow key longer for fast forword.</div>
+    </section>
 </body>
 
 </html>

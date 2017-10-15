@@ -1,4 +1,8 @@
 //
+/*
+    Author  : Yogesh Jagdale
+    Website : https://thisyogesh.github.io/snake/
+*/
 'use strict';
 // extends Functions prototype 
 Function.prototype._prototype = function (proto) {
@@ -53,10 +57,6 @@ function animationFrame(a) {
     }
     _this.frame();
     return _this;
-}
-
-function num(a) {
-    return a + 0.5;
 }
 
 var snakeApp = (function snakeApp(config) {
