@@ -6,3 +6,6 @@ JavaScript Snake Game with Canvas
 
 ### Game Controls
 ![](/theme/snake-board-controls.png?raw=true "")
+
+
+[Click Here To Play Game](https://thisyogesh.github.io/snake)
