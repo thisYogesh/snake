@@ -97,20 +97,17 @@ body{
     padding: 20px;
 }
 
-@media screen and (max-width:1024px){
+@media screen and ( max-width:1024px ) {
     .setting-group {
-        display: block;
+        display: inline-block;
         margin: 0 18px;
     }
 
     .game-setting-info {
         display: table;
-        margin: 15px;
+        margin: 20px auto 0;
         background-color: rgba(255, 255, 255, 0.1);
         border-radius: 4px;
-        position: absolute;
-        left: 0;
-        top: 0;
-        cursor: default;
+        position: static;
     }
 }
