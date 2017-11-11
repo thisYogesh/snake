@@ -67,7 +67,7 @@ var snakeApp = (function snakeApp(config) {
     _this.canvas = $("<canvas id='canvas'>").get(0);
     _this.container.append(_this.canvas);
     _this.playGroundArea = config.playGroundArea || 420;
-    _this.gridDimention = 14;
+    _this.gridDimention = config.gridDimention || 14;
     _this.app = { status: _status.stoped };
     _this.setup();
     _this.playGround = new (playGround._inheritInstance(_this))({
@@ -80,9 +80,10 @@ var snakeApp = (function snakeApp(config) {
     setup: function () {
         var _this = this;
         _this.reScale();
+        externalScript && externalScript();
     },
     reScale: function () {
-        this.canvas.height = this.canvas.width = this.playGroundArea + 1;
+        this.canvas.height = this.canvas.width = Math.ceil(this.playGroundArea/this.gridDimention) * this.gridDimention + 1;
     }
 });
 
@@ -441,9 +442,9 @@ var snake = function () {
 
                 // reset bounding position
                 if (segment.x < 0) {
-                    segment.x = (this.gridDimention * ((this.playGroundArea / this.gridDimention) - 1)) + 1;
+                    segment.x = (this.gridDimention * (Math.ceil(this.playGroundArea / this.gridDimention) - 1)) + 1;
                 } else if (segment.y < 0) {
-                    segment.y = (this.gridDimention * ((this.playGroundArea / this.gridDimention) - 1)) + 1;
+                    segment.y = (this.gridDimention * (Math.ceil(this.playGroundArea / this.gridDimention) - 1)) + 1;
                 } else if (segment.x > this.playGroundArea) {
                     segment.x = 1;
                 } else if (segment.y > this.playGroundArea) {

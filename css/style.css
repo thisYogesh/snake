@@ -10,7 +10,7 @@
 #canvas {
     background: #9daf7f;
     box-shadow: 0px 0px 6px 1px #000, 0 0 18px #fff;
-    margin-top: 20px
+    margin-top: 10px
 }
 body{
     background: #424242;
@@ -61,8 +61,7 @@ body{
 }
 
 .setting-group {
-    display: inline-block;
-    vertical-align: top;
+    display: block;
     margin: 0 18px;
 }
 
@@ -73,9 +72,13 @@ body{
 
 .game-setting-info {
     display: table;
-    margin: 30px auto 0;
+    margin: 15px;
     background-color: rgba(255, 255, 255, 0.1);
     border-radius: 4px;
+    position: absolute;
+    left: 0;
+    top: 0;
+    cursor: default;
 }
 
 .setting-tip {
@@ -83,4 +86,31 @@ body{
     margin: 0 18px 18px 18px;
     color: #fff;
     font-style: italic;
+    text-decoration: underline;
+}
+
+.game-setting-config {
+    display: table;
+    margin: 30px auto 0;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    padding: 20px;
+}
+
+@media screen and (max-width:1024px){
+    .setting-group {
+        display: block;
+        margin: 0 18px;
+    }
+
+    .game-setting-info {
+        display: table;
+        margin: 15px;
+        background-color: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+        position: absolute;
+        left: 0;
+        top: 0;
+        cursor: default;
+    }
 }

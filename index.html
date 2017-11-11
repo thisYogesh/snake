@@ -8,10 +8,15 @@
     <link rel="stylesheet" href="css/fonts.css">
     <script type="text/javascript" src="js/snakeApp.js"></script>
     <script type="text/javascript" src="js/jquery.min.js"></script>
+    <script type="text/javascript" src="js/script.js"></script>
     <script type="text/javascript">
         $(function () {
             window.app = new snakeApp({
                 container: "#container",
+                playGroundArea: function(){
+                    return this.innerWidth < 420 ? this.innerWidth - 20 : null;
+                }(),
+                gridDimention: 16,
                 media: function () {
                     var _media = {
                         collide: $("<audio>").eq(0).attr("src", "sounds/collide2.wav").get(0),
