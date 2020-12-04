@@ -34,21 +34,47 @@ var direction = { ltr: 1, rtl: 2, ttb: 3, btt: 4 },
     _direction = { 1: "ltr", 2: "rtl", 3: "ttb", 4: "btt" },
     _status = { started: "started", stoped: "stoped", paused: "paused", collided: "collided" };
 
+
+function RequestAnimationFrame(callback, timeout, Obj){
+    let time = 0
+    function frame(timestamp){
+        if(!time) time = timestamp;
+
+        let timediff = timestamp - time
+
+        if(timediff >= timeout) callback()
+        else Obj.frameID = window.requestAnimationFrame(frame)
+    }
+
+    Obj.frameID = window.requestAnimationFrame(frame)
+}
+
+function SetTimeout(callback, timeout, Obj) {
+    if(window.requestAnimationFrame) return RequestAnimationFrame(callback, timeout, Obj)
+    else return Obj.frameID = setTimeout(callback, timeout)
+}
+
+function ClearTimeout(frameID) {
+    clearTimeout(frameID);
+    cancelAnimationFrame(frameID);
+}
+
 function animationFrame(a) {
     var _this = this;
     _this.frameID = 0;
     _this.live = null;
     _this.frame = function () {
         if (_this.live === null || _this.live === true) {
-            _this.frameID = setTimeout(function () {
+            SetTimeout(function(){
                 a.callback();
                 _this.frame();
-            }, a.interval);
+            }, a.interval, _this)
+
             _this.live = true;
         }
     }
     _this.stop = function () {
-        clearTimeout(this.frameID);
+        ClearTimeout(this.frameID);
         _this.live = false;
     }
     _this.start = function () {
